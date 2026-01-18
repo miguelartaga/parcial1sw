@@ -1,7 +1,39 @@
+import json
+
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, TIMESTAMP, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
+
+class JSONText(Text):
+    cache_ok = True
+
+    def bind_processor(self, dialect):
+        text_processor = super().bind_processor(dialect)
+
+        def process(value):
+            if value is None:
+                return None
+            if not isinstance(value, str):
+                value = json.dumps(value, ensure_ascii=True)
+            return text_processor(value) if text_processor else value
+
+        return process
+
+    def result_processor(self, dialect, coltype):
+        text_processor = super().result_processor(dialect, coltype)
+
+        def process(value):
+            if text_processor:
+                value = text_processor(value)
+            if value is None:
+                return None
+            try:
+                return json.loads(value)
+            except (TypeError, ValueError):
+                return value
+
+        return process
 
 
 class User(Base):
@@ -54,7 +86,7 @@ class Diagram(Base):
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     name = Column(String(120), nullable=False)
-    graph = Column(Text, nullable=False)  # nodos/edges React Flow
+    graph = Column(JSONText, nullable=False)  # nodos/edges React Flow
 
     project = relationship("Project", back_populates="diagrams")
 
@@ -65,7 +97,7 @@ class PromptHistory(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     prompt = Column(Text, nullable=False)
-    graph = Column(Text, nullable=False)
+    graph = Column(JSONText, nullable=False)
     created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
     user = relationship("User", back_populates="prompt_history")
