@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, TIMESTAMP, text
-from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -55,7 +54,7 @@ class Diagram(Base):
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     name = Column(String(120), nullable=False)
-    graph = Column(JSON, nullable=False)  # nodos/edges React Flow
+    graph = Column(Text, nullable=False)  # nodos/edges React Flow
 
     project = relationship("Project", back_populates="diagrams")
 
@@ -66,7 +65,7 @@ class PromptHistory(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     prompt = Column(Text, nullable=False)
-    graph = Column(JSON, nullable=False)
+    graph = Column(Text, nullable=False)
     created_at = Column(TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
     user = relationship("User", back_populates="prompt_history")
